@@ -209,6 +209,8 @@ portless trust                                      # Add CA to trust store late
 
 On Linux, `portless trust` supports Debian/Ubuntu, Arch, Fedora/RHEL/CentOS, and openSUSE (via `update-ca-certificates` or `update-ca-trust`). On Windows, it uses `certutil` to add the CA to the system trust store. On WSL, it updates both the Linux trust store and the Windows current-user Root store so Windows browsers trust portless HTTPS certificates.
 
+For Linux Chrome/Chromium, `portless trust` also updates the invoking user's existing NSS database, including when run via sudo. It prefers `~/.pki/nssdb`, otherwise `~/.local/share/pki/nssdb` (Chromium M146+). If `certutil` is missing, install `libnss3-tools` (Debian/Ubuntu), `nss-tools` (Fedora/RHEL), `nss` (Arch), or `mozilla-nss-tools` (openSUSE), rerun `portless trust`, and restart the browser. If neither database exists, no NSS database is created; open Chrome once before rerunning `portless trust`. `portless clean` removes the CA from the active NSS database too.
+
 ### LAN mode
 
 ```bash
