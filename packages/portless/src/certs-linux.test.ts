@@ -150,13 +150,29 @@ describe.skipIf(process.platform !== "linux")("Linux browser CA trust", () => {
     expect(new Set(nssUsers)).toEqual(new Set(["alice"]));
   });
 
-  it("reports missing certutil instead of claiming browser trust", () => {
+  it("reports partial success when certutil is missing and completes trust on retry", () => {
     createDB();
     certutilError = Object.assign(new Error("spawnSync certutil ENOENT"), { code: "ENOENT" });
     const result = trustCA(stateDir);
-    expect(result.trusted).toBe(false);
-    expect(result.error).toContain("libnss3-tools");
+    expect(result.trusted).toBe(true);
+    expect(result.warning).toContain("libnss3-tools");
+    expect(result.error).toBeUndefined();
     expect(isCATrusted(stateDir)).toBe(false);
+    certutilError = undefined;
+    expect(trustCA(stateDir)).toEqual({ trusted: true });
+    expect(isCATrusted(stateDir)).toBe(true);
+  });
+
+  it("still fails when the system trust update fails", () => {
+    createDB();
+    vi.mocked(childProcess.execFileSync).mockImplementationOnce(() => {
+      throw new Error("EACCES: permission denied");
+    });
+    const result = trustCA(stateDir);
+    expect(result.trusted).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(result.warning).toBeUndefined();
+    expect(nssUsers).toEqual([]);
   });
 
   it("preserves system-only support when no browser DB exists", () => {

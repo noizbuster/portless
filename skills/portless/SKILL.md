@@ -211,6 +211,8 @@ On Linux, `portless trust` supports Debian/Ubuntu, Arch, Fedora/RHEL/CentOS, and
 
 For Linux Chrome/Chromium, `portless trust` also updates the invoking user's existing NSS database, including when run via sudo. It prefers `~/.pki/nssdb`, otherwise `~/.local/share/pki/nssdb` (Chromium M146+). If `certutil` is missing, install `libnss3-tools` (Debian/Ubuntu), `nss-tools` (Fedora/RHEL), `nss` (Arch), or `mozilla-nss-tools` (openSUSE), rerun `portless trust`, and restart the browser. If neither database exists, no NSS database is created; open Chrome once before rerunning `portless trust`. `portless clean` removes the CA from the active NSS database too.
 
+Linux NSS registration failure is partial success: after successful system trust registration, `portless trust` exits successfully but prints a browser-trust warning. Do not infer Chrome trust from the exit code alone. Install the NSS tools and rerun `portless trust`; `portless doctor` continues to report incomplete trust until NSS verification succeeds. NSS removal failures still preserve the CA certificate and key so `portless clean` can retry.
+
 ### LAN mode
 
 ```bash

@@ -1905,7 +1905,9 @@ ${colors.bold("HTTP/2 + HTTPS (default):")}
   system trust store. No browser warnings. Disable with --no-tls.
   Linux also updates the invoking user's existing Chrome/Chromium NSS DB:
   ~/.pki/nssdb if present, otherwise ~/.local/share/pki/nssdb (M146+).
-  Requires NSS certutil (Debian/Ubuntu: sudo apt install libnss3-tools).
+  NSS registration needs certutil (Debian/Ubuntu: sudo apt install libnss3-tools).
+  If NSS registration fails, system trust still succeeds with a warning;
+  Chrome may remain untrusted. Install the tools and rerun portless trust.
   If neither DB exists, open Chrome once, then rerun portless trust.
   Restart the browser after trusting. portless clean removes NSS trust too.
   On WSL, portless also adds the CA to the Windows user certificate store.
@@ -2031,7 +2033,11 @@ async function handleTrust(): Promise<void> {
   const result = trustCA(dir);
   if (result.trusted) {
     console.log(colors.green("Local CA added to system trust store."));
-    console.log(colors.gray("Restart your browser to use the updated certificate trust."));
+    if (result.warning) {
+      console.warn(colors.yellow(result.warning));
+    } else {
+      console.log(colors.gray("Restart your browser to use the updated certificate trust."));
+    }
     return;
   }
 
@@ -3352,9 +3358,14 @@ ${colors.bold("LAN mode (--lan):")}
         console.log(colors.yellow("Adding CA to system trust store..."));
         const trustResult = trustCA(stateDir);
         if (trustResult.trusted) {
-          console.log(
-            colors.green("CA trust installed. Restart your browser to use the updated trust.")
-          );
+          if (trustResult.warning) {
+            console.log(colors.green("CA added to system trust store."));
+            console.warn(colors.yellow(trustResult.warning));
+          } else {
+            console.log(
+              colors.green("CA trust installed. Restart your browser to use the updated trust.")
+            );
+          }
         } else {
           console.warn(colors.yellow("Could not add CA to system trust store."));
           if (trustResult.error) {

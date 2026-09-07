@@ -980,8 +980,11 @@ export function createSNICallback(
  * Windows current-user Root store.
  *
  * Supported Linux distros: Debian/Ubuntu, Arch, Fedora/RHEL/CentOS, openSUSE.
+ *
+ * `trusted` reports OS trust installation. A warning means Linux browser NSS
+ * trust is incomplete; isCATrusted still checks both stores.
  */
-export function trustCA(stateDir: string): { trusted: boolean; error?: string } {
+export function trustCA(stateDir: string): { trusted: boolean; error?: string; warning?: string } {
   const caCertPath = path.join(stateDir, CA_CERT_FILE);
   if (!fileExists(caCertPath)) {
     return {
@@ -1025,10 +1028,18 @@ export function trustCA(stateDir: string): { trusted: boolean; error?: string } 
       const dest = path.join(config.certDir, "portless-ca.crt");
       fs.copyFileSync(caCertPath, dest);
       execFileSync(config.updateCommand, [], { stdio: "pipe", timeout: 30_000 });
-      updateCATrustNSS(caCertPath);
+      let warning: string | undefined;
+      try {
+        updateCATrustNSS(caCertPath);
+      } catch (err) {
+        warning =
+          "Chrome/Chromium may still show certificate warnings.\n" +
+          (err instanceof Error ? err.message : String(err));
+      }
       if (isWSL()) {
         trustWindowsCA(caCertPath, wslWindowsCAStoreOptions());
       }
+      if (warning) return { trusted: true, warning };
       writeTrustMarker(stateDir);
       return { trusted: true };
     } else if (process.platform === "win32") {
